@@ -11,6 +11,10 @@ import { makeStyles, Theme, createStyles } from "@material-ui/core/styles";
 import IconButton from "@material-ui/core/IconButton";
 import AddCommentIcon from '@material-ui/icons/AddComment';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
+import { ServerConnection } from '@jupyterlab/services';
+import { URLExt } from '@jupyterlab/coreutils';
+import { RequestHandler } from './request';
+import { ConvertToJsonDag } from './createJsonDag';
 const useStyles = makeStyles({
   tools: {
     backgroundColor : '#8080805c',
@@ -28,12 +32,36 @@ const useStyles = makeStyles({
 });
 export const ToolBar = (props): JSX.Element => {
   const classes = useStyles();
+  const handleclick = (event, type) => {
+    if (type == "Run") {
+      //This method does the below actions
+      /*
+      a) Convert the Elements to json onDragStart
+
+      */
+      let payloadItems = {
+        jsondag : ConvertToJsonDag(props.pipeline),
+        configuration: props.parameters,
+        github: {
+          token : "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",
+          repo : "krishnadhoundiyal/extensions-jupyter",
+          branch: "test"
+        }
+      };
+      let serverPromise = RequestHandler.makePostRequest( 'explorersdev/executeAirflow',
+      JSON.stringify(payloadItems)).then(response =>{
+        console.log(response);
+      });
+    }
+  }
   return (
     <React.Fragment>
     <Grid item xs={2}></Grid>
     <Grid item xs={1} classes={{root:classes.tools}}>
     <IconButton classes={{root:classes.toolicons}}
-      aria-label="Attach">
+      aria-label="Attach"
+      onClick={(event) => handleclick(event,"Run")}
+      >
       <AttachFileIcon fontSize="small" />
     </IconButton>
     </Grid>

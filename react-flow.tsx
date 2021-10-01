@@ -44,7 +44,7 @@ import Menu from '@material-ui/core/Menu';
 import { ContextMenu } from './contextmenu';
 import { DrawerConfigure } from './configuredrawer';
 import { ToolBar } from './toolbar';
-
+import { v4 as uuidv4 } from 'uuid';
 const initialElements: Elements = [
   {
     id: '1',
@@ -233,7 +233,7 @@ export const DnDFlow = () => {
       y: event.clientY - reactFlowBounds.top,
     });
     const newNode = {
-      id: getId() + type,
+      id: uuidv4().toString().replace(/\-/gi,""),
       type:type != "Comment" ? 'default' : 'output',
       position,
       data: { label : getNewNode(type)
@@ -248,7 +248,7 @@ export const DnDFlow = () => {
     <div className="dndflow">
       <ReactFlowProvider>
       <Grid container style={{marginTop:"2px"}}>
-      <ToolBar nodeId={nodeId} />
+      <ToolBar pipeline={elements} parameters={conf} />
 
 
       <Grid item xs={3}>
