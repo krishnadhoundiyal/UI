@@ -46,3 +46,45 @@ export const ConvertToJsonDag = (elements) => {
     dag.connections = connections;
     return dag;
   }
+  export const ConvertConfToDesiredObj  = (elements) => {
+    let dockerImageLookUp = {
+      "Pandas" : "docker.io/amancevice/pandas:1.1.1",
+      "PyTorch" : "docker.io/amancevice/pandas:1.1.1"
+    }
+    let configuration = Object.keys(elements).map((items) => {
+      let temp_obj = {}
+      temp_obj["id"] = elements[items]["id"];
+      temp_obj["label"] = elements[items]["label"];
+      temp_obj["type"] = elements[items]["type"];
+      temp_obj["filename"] = elements[items]["jupyterFilePath"];
+      if (elements[items]["type"] == "JupyterLabNotebook") {
+        temp_obj["type"] = "NoteBook";
+      }
+
+      temp_obj["runtime_image"] = dockerImageLookUp[elements[items]["jupyterNotebookDockerImage"]];
+      temp_obj["dependencies"] = elements[items]["juputerNotebookDependency"].map((items1) => {
+                                                            return items1["fileSelected"]
+                                                          }).filter((ele) => {
+                                                            if (ele != "") {
+                                                              return true;
+                                                            } else {
+                                                              return false;
+                                                            }
+                                                          });
+      temp_obj["outputs"] = elements[items]["jupyterNotebookOutFiles"].map((items1) => {
+                                                            return items1["outfiles"]
+                                                          }).filter((ele) => {
+                                                            if (ele != "") {
+                                                              return true;
+                                                            } else {
+                                                              return false;
+                                                            }
+                                                          });
+      temp_obj["env_vars"] = elements[items]["jupyterNotebookEnvironVar"];
+      /*temp_obj["cpu"] = 1;
+      temp_obj["gpu"] = 0;
+      temp_obj["memory"] = 1;*/
+      return temp_obj
+    });
+    return configuration;
+  }
