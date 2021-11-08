@@ -87,6 +87,10 @@ export const DnDFlow = () => {
   const [openDrawer,setopenDrawer] = useState(false);
   const [conf, setconf] = useState({});
   const [objtoPass, setobjtoPass] = useState({});
+  const [dagDetails,setDagDetails] = useState({
+    dag_id : '',
+    dag_run_id : ''
+  });
   const onNodeContextMenu = (event,node) => {
     event.preventDefault();
     setAnchorEl(event.target);
@@ -151,6 +155,56 @@ export const DnDFlow = () => {
     setconf(tObj);
     setopenDrawer(false);
   };
+  const updateDAGInfo = (data) => {
+    let temp_obj = {
+      dag_id : data["dag_id"],
+      dag_run_id : data["dag_run_id"]
+    }
+    setDagDetails(temp_obj);
+  }
+  const updateAirflowStatus = (data) => {
+    console.log(elements);
+    let temp_obj = elements.map((sItems,sIndex) => {
+      if ("source" in sItems && "target" in sItems) {
+        //connection object Description
+        let tempObj = {...sItems};
+        tempObj["animated"] =  true;
+        tempObj['label'] = 'Failed';
+        tempObj['style'] =  { stroke: 'red' };
+        return tempObj;
+        if (data[sItems["target"]]["state"] === "queued" || data[sItems["target"]]["state"] === undefined) {
+          tempObj['label'] = 'Queued';
+          tempObj['style'] =  { stroke: 'gray' };
+        }
+        if (data[sItems["target"]]["state"] === "running") {
+          tempObj['label'] = 'Running';
+          tempObj['style'] =  { stroke: 'green' };
+        }
+        if (data[sItems["target"]]["state"] === "success") {
+          tempObj['label'] = 'Completed';
+          tempObj['style'] =  { stroke: 'blue' };
+        }
+        if (data[sItems["target"]]["state"] === "upstream_failed") {
+          tempObj['label'] = 'UpStream-Failed';
+          tempObj['style'] =  { stroke: 'orange' };
+        }
+        if (data[sItems["target"]]["state"] === "failed") {
+          tempObj['label'] = 'Failed';
+          tempObj['style'] =  { stroke: 'red' };
+        }
+        if (data[sItems["target"]]["state"] === "skipped") {
+          tempObj['label'] = 'Skipped';
+          tempObj['style'] =  { stroke: 'pink' };
+        }
+
+        return tempObj;
+      } else {
+        return sItems;
+      }
+    });
+    //Update UI
+    setElements(temp_obj);
+  }
   const onRemoveContextMenu = () => {
     setAnchorEl(null);
     setContextMenu(false);
@@ -162,6 +216,9 @@ export const DnDFlow = () => {
       params.animated = true;
     }
     setElements((els) => addEdge(params, els));
+  }
+  const onTaskLogRecieve = (data) => {
+    setContextMenu(false);
   }
   const onElementsRemove = (elementsToRemove) =>
     setElements((els) => removeElements(elementsToRemove, els));
@@ -248,7 +305,7 @@ export const DnDFlow = () => {
     <div className="dndflow">
       <ReactFlowProvider>
       <Grid container style={{marginTop:"2px"}}>
-      <ToolBar pipeline={elements} parameters={conf} />
+      <ToolBar pipeline={elements} parameters={conf} updateConnections={updateAirflowStatus} updateDagDetails={updateDAGInfo}/>
 
 
       <Grid item xs={3}>
@@ -269,7 +326,12 @@ export const DnDFlow = () => {
           </ReactFlow>
         </div>
         {contextMenu && (
-          <ContextMenu anchorelement={anchorEl} nodeid={nodeId} removeelementcallback={onRemoveContextMenu} handleDrawerOpen={onOpenDrawer} />
+          <ContextMenu anchorelement={anchorEl}
+           nodeid={nodeId}
+           dag_info={dagDetails}
+           removeelementcallback={onRemoveContextMenu}
+           handleLogItems={onTaskLogRecieve}
+           handleDrawerOpen={onOpenDrawer} />
         )}
         {openDrawer && (
         <DrawerConfigure

@@ -106,6 +106,31 @@ export const ConfigureRuntime = (props) => {
             <TextField
               required
               id="outlined-required"
+              label="Apache Airflow UserName"
+              defaultValue={config.AirflowUserName}
+              variant="outlined"
+              classes={{ root: classes.configTextFields }}
+              onBlur={(e) => saveUserInputs(e, "AirflowUserName")}
+            />
+          </Grid>
+
+          <Grid item={true} xs={5}>
+            <TextField
+              required
+              id="outlined-required"
+              label="Apache Airflow Password"
+              variant="outlined"
+              defaultValue={config.AirflowPassword}
+              classes={{ root: classes.configTextFields }}
+              onBlur={(e) => saveUserInputs(e, "AirflowPassword")}
+            />
+          </Grid>
+          <Grid item={true} xs={1}></Grid>
+          <Grid item={true} xs={1}></Grid>
+          <Grid item={true} xs={5}>
+            <TextField
+              required
+              id="outlined-required"
               label="GITHub API Endpoint"
               variant="outlined"
               classes={{ root: classes.configTextFields }}

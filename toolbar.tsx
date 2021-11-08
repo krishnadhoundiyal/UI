@@ -17,7 +17,9 @@ import { RequestHandler } from './request';
 import { ConvertToJsonDag } from './createJsonDag';
 import { ConvertConfToDesiredObj } from './createJsonDag';
 import { ConfigureRuntime } from './configRuntime';
+import { ModalErrors } from './modal';
 import { InputDialog, Dialog, showDialog } from '@jupyterlab/apputils';
+import { updateAirflowConfig } from './airflowConfig';
 import { Widget } from '@lumino/widgets';
 const useStyles = makeStyles({
   tools: {
@@ -37,9 +39,26 @@ const useStyles = makeStyles({
 export const ToolBar = (props): JSX.Element => {
   const classes = useStyles();
   const [openRuntimeDrawer,setopenRuntimeDrawer] = useState(false);
+  const [openErrorDialog,setopenErrorDialog] = useState(false);
+  const [statusfunreference,setstatusfunreference] = useState(0);
+  const [dagid,setdagid] = useState("");
+  const [errorDetails,seterrorDetails] = useState({
+    'error' : '',
+    'traceback': ''
+  });
+  const resetErrorDetails = () => {
+    let temp_obj = {
+      'error' : '',
+      'traceback': ''
+    }
+    seterrorDetails(temp_obj);
+    setopenErrorDialog(false);
+  }
   const [configRuntime, setconfigRuntime] = useState({
     AirflowEndpoint: "Apache Airflow UI Endpoint",
     AirflowNamespace: "default",
+    AirflowUserName: "admin",
+    AirflowPassword: "admin",
     GITEndpoint: "https://api.github.com",
     GITRepo: "GITHub DAG Repository",
     GITBranch: "main",
@@ -52,6 +71,7 @@ export const ToolBar = (props): JSX.Element => {
   });
   const handleConfigPersist = (configItems) => {
     setconfigRuntime(configItems);
+    updateAirflowConfig(configItems);
     setopenRuntimeDrawer(false);
   };
   const handleclick = (event, type) => {
@@ -71,6 +91,7 @@ export const ToolBar = (props): JSX.Element => {
           url: "https://api.github.com"
         }
       };
+      setdagid(payloadItems.jsondag["name"]);
       //ask user to overrides and execute the server application
       InputDialog.getText({ title: 'Override DAG Name - '+ payloadItems.jsondag.name }).then(value => {
          if (value.value != "" && value.button.label != 'Cancel') {
@@ -98,12 +119,109 @@ export const ToolBar = (props): JSX.Element => {
                    }).then(result => {
                      console.log("Do Nothing");
                    });
+            }, reject => {
+              console.log(reject);
+              let temp_obj = {
+                'error' : reject.message,
+                'traceback': reject.traceback
+              }
+              seterrorDetails(temp_obj);
+              setopenErrorDialog(true);
+              /*
+              let body = document.createElement('div');
+              body.innerHTML = "<h3>Error in Processing DAG and dependencies\
+                                <p> " + reject.message + " </p> \
+                                <p>" + reject.traceback + "</p> \
+                                <p>" + reject.timestamp + "</p> \
+                                </h3>";
+
+              showDialog({
+                    title: 'Error Details',
+                    body: new Widget({ node: body }),
+                    buttons: [Dialog.cancelButton()]
+                  }).then(result => {
+                    console.log("Do Nothing");
+                  });
+                  */
             });
+
           });
         });
 
     }
     if (type == "Configure") {
+      let payloadItems = {
+        airflow_ip : configRuntime["AirflowEndpoint"],
+        airflow_port: "30507",
+        airflow_uname: configRuntime["AirflowUserName"],
+        airflow_pass: configRuntime["AirflowPassword"],
+        dag_id : dagid
+      };
+
+              //trigger the server app now,
+         let serverPromise = RequestHandler.makePostRequest( 'explorersdev/triggerAirflow',
+         JSON.stringify(payloadItems)).then(response =>{
+           console.log(response);
+           let body = document.createElement('div');
+           body.innerHTML = "<p> Triggered Airflow DAG successfully \
+                            Airflow DAG ID : "  + response.data.dag_id + "<br/>\
+                            Airflow DAG Run ID : " + response.data.dag_run_id + "<br/>\
+                            Execution Data : " + response.data.execution_date + "<br/>\
+                            State : " + response.data.state + "</p>";
+
+           showDialog({
+                 title: 'Trigger Airflow',
+                 body: new Widget({ node: body }),
+                 buttons: [Dialog.cancelButton()]
+               }).then(result => {
+                 console.log("Do Nothing");
+               });
+          // Query the Airflow to get the status of the tasks
+          let queryStatuePayload = {
+            airflow_ip : configRuntime["AirflowEndpoint"],
+            airflow_port: "30507",
+            airflow_uname: configRuntime["AirflowUserName"],
+            airflow_pass: configRuntime["AirflowPassword"],
+            dag_id : response.data.dag_id,
+            dag_run_id :  response.data.dag_run_id
+          };
+          var funRef = setInterval(() => {
+            let stop_ajax = false;
+            let statusPromise = RequestHandler.makePostRequest( 'explorersdev/getTaskStatus',
+            JSON.stringify(queryStatuePayload)).then(taskstatus =>{
+              let statusMap = taskstatus["data"].reduce ((previousValue,currentValue,currentIndex,arr) => {
+              previousValue[currentValue["task_id"]] = currentValue["state"];
+              if (["failed","upstream_failed"].includes(currentValue['state'])) {
+                stop_ajax = true;
+              }
+              return previousValue;
+            },{});
+              if (stop_ajax) {
+                clearInterval(funRef);
+              }
+              props.updateConnections(statusMap);
+            });
+          },6000);
+          props.updateDagDetails({
+            dag_id : response.data.dag_id,
+            dag_run_id :  response.data.dag_run_id
+          });
+
+
+        }, reject => {
+          console.log(reject);
+          let temp_obj = {
+            'error' : reject.message,
+            'traceback': reject.traceback
+          }
+          seterrorDetails(temp_obj);
+          setopenErrorDialog(true);
+        });
+
+
+
+    }
+    if (type == "AirflowConfig") {
       setopenRuntimeDrawer(true);
     }
   }
@@ -132,6 +250,15 @@ export const ToolBar = (props): JSX.Element => {
       <AssignmentTurnedInIcon fontSize="small" />
 
     </IconButton>
+
+    </Grid>
+    <Grid item xs={1} classes={{root:classes.tools}}>
+    <IconButton classes={{root:classes.toolicons}}
+      aria-label="Save"
+      onClick={(event) => handleclick(event,"AirflowConfig")}
+      >
+      <SettingsIcon fontSize="small" />
+    </IconButton>
     {openRuntimeDrawer && (
     <ConfigureRuntime
       callback={handleConfigPersist}
@@ -142,14 +269,9 @@ export const ToolBar = (props): JSX.Element => {
     <Grid item xs={1} classes={{root:classes.tools}}>
     <IconButton classes={{root:classes.toolicons}}
       aria-label="Save">
-      <SettingsIcon fontSize="small" />
-    </IconButton>
-    </Grid>
-    <Grid item xs={1} classes={{root:classes.tools}}>
-    <IconButton classes={{root:classes.toolicons}}
-      aria-label="Save">
       <ClearAllIcon fontSize="small" />
     </IconButton>
+
     </Grid>
     <Grid item xs={1} classes={{root:classes.tools}}>
     <IconButton classes={{root:classes.toolicons}}
@@ -178,6 +300,12 @@ export const ToolBar = (props): JSX.Element => {
     <Grid item xs={1} >
 
     </Grid>
+    {openErrorDialog && (
+        <ModalErrors
+          errorobject={errorDetails}
+          callback={resetErrorDetails}
+        />
+      )}
     </React.Fragment>
 
   );
