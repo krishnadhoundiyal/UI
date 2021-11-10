@@ -2,6 +2,8 @@ import AttachFileIcon from '@material-ui/icons/AttachFile';
 import Grid from '@material-ui/core/Grid';
 import ArrowRightIcon from '@material-ui/icons/ArrowRight';
 import AssignmentTurnedInIcon from '@material-ui/icons/AssignmentTurnedIn';
+import { AiFillGithub } from 'react-icons/ai';
+import { SiKubernetes, SiApacheairflow } from 'react-icons/si';
 import SettingsIcon from '@material-ui/icons/Settings';
 import ClearAllIcon from '@material-ui/icons/ClearAll';
 import ViewListIcon from '@material-ui/icons/ViewList';
@@ -21,6 +23,7 @@ import { ModalErrors } from './modal';
 import { InputDialog, Dialog, showDialog } from '@jupyterlab/apputils';
 import { updateAirflowConfig } from './airflowConfig';
 import { Widget } from '@lumino/widgets';
+import Tooltip from '@material-ui/core/Tooltip';
 const useStyles = makeStyles({
   tools: {
     backgroundColor : '#8080805c',
@@ -34,6 +37,9 @@ const useStyles = makeStyles({
   toolicons : {
     paddingTop: '6px',
     paddingBottom: '6px'
+  },
+  progress: {
+    marginTop: '200px'
   }
 });
 export const ToolBar = (props): JSX.Element => {
@@ -84,16 +90,33 @@ export const ToolBar = (props): JSX.Element => {
       let payloadItems = {
         jsondag : ConvertToJsonDag(props.pipeline),
         configuration: ConvertConfToDesiredObj(props.parameters),
-        github: {
+        /*github: {
           token : "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",
           repo : "krishnadhoundiyal/extensions-jupyter",
           branch: "test",
           url: "https://api.github.com"
         }
+        */
       };
+      payloadItems["github"] = {
+        "token": configRuntime["GITToken"],
+        "repo": configRuntime["GITRepo"],
+        "branch": configRuntime["GITBranch"],
+        "url" : configRuntime["GITEndpoint"]
+      }
+      payloadItems["cos-config"] = {
+        "cos_endpoint": configRuntime["StorageEndpoint"],
+         "cos_username": configRuntime["StorageUsername"],
+         "cos_password": configRuntime["StoragePassword"],
+         "cos_bucket": configRuntime["StorageBucket"],
+         "user_params" : {
+             "name" : ""
+         }
+      }
       setdagid(payloadItems.jsondag["name"]);
       //ask user to overrides and execute the server application
       InputDialog.getText({ title: 'Override DAG Name - '+ payloadItems.jsondag.name }).then(value => {
+        payloadItems["cos-config"]["user_params"]["name"] = payloadItems.jsondag.name;
          if (value.value != "" && value.button.label != 'Cancel') {
            payloadItems.jsondag.name = value.value
           }
@@ -102,11 +125,15 @@ export const ToolBar = (props): JSX.Element => {
                payloadItems.jsondag.pipeline_description = value.value;
              }
               //trigger the server app now,
+             setdagid(payloadItems.jsondag["name"]);
+             payloadItems["cos-config"]["user_params"]["name"] = payloadItems.jsondag.name;
+             props.showLoading(true);
              let serverPromise = RequestHandler.makePostRequest( 'explorersdev/executeAirflow',
              JSON.stringify(payloadItems)).then(response =>{
                console.log(response);
+               props.showLoading(false);
                let body = document.createElement('div');
-               body.innerHTML = "<p> DAG Succesfully Uploaded to the GIT Location \
+               body.innerHTML = "<AiFillGithub  fontSize='small' /><p> DAG Succesfully Uploaded to the GIT Location \
                                 <a style=\"text-decoration:underline;\" href=" + response.git_url + " target=\"_blank\">DAG URL</a><br/>\
 		                            Updated Cloud Storage Bucket : " + response.object_storage_bucket + "<br/>\
                                 Updated Cloud Storage Folder Created : " + response.object_storage_path + "<br/>\
@@ -120,6 +147,7 @@ export const ToolBar = (props): JSX.Element => {
                      console.log("Do Nothing");
                    });
             }, reject => {
+              props.showLoading(false);
               console.log(reject);
               let temp_obj = {
                 'error' : reject.message,
@@ -229,12 +257,14 @@ export const ToolBar = (props): JSX.Element => {
     <React.Fragment>
     <Grid item xs={2}></Grid>
     <Grid item xs={1} classes={{root:classes.tools}}>
+    <Tooltip title="Generate DAG and Dependencies">
     <IconButton classes={{root:classes.toolicons}}
       aria-label="Attach"
       onClick={(event) => handleclick(event,"Run")}
       >
-      <AttachFileIcon fontSize="small" />
+      <AiFillGithub  size={20} />
     </IconButton>
+    </Tooltip>
     </Grid>
     <Grid item xs={1} classes={{root:classes.tools}}>
     <IconButton classes={{root:classes.toolicons}}
@@ -243,22 +273,25 @@ export const ToolBar = (props): JSX.Element => {
     </IconButton>
     </Grid>
     <Grid item xs={1} classes={{root:classes.tools}}>
+    <Tooltip title="Execute Pipeline on Kubernetes Cluster">
     <IconButton classes={{root:classes.toolicons}}
       aria-label="Configure"
       onClick={(event) => handleclick(event,"Configure")}
       >
-      <AssignmentTurnedInIcon fontSize="small" />
+        <SiKubernetes  size={20} />
 
     </IconButton>
-
+    </Tooltip>
     </Grid>
     <Grid item xs={1} classes={{root:classes.tools}}>
+    <Tooltip title="Runtime Configurations">
     <IconButton classes={{root:classes.toolicons}}
       aria-label="Save"
       onClick={(event) => handleclick(event,"AirflowConfig")}
       >
-      <SettingsIcon fontSize="small" />
+      <SiApacheairflow size={20} />
     </IconButton>
+    </Tooltip>
     {openRuntimeDrawer && (
     <ConfigureRuntime
       callback={handleConfigPersist}
@@ -279,6 +312,7 @@ export const ToolBar = (props): JSX.Element => {
       <ViewListIcon fontSize="small" />
     </IconButton>
     </Grid>
+
     <Grid item xs={1} classes={{root:classes.tools}}>
     <IconButton classes={{root:classes.toolicons}}
       aria-label="Save">
@@ -306,6 +340,7 @@ export const ToolBar = (props): JSX.Element => {
           callback={resetErrorDetails}
         />
       )}
+
     </React.Fragment>
 
   );

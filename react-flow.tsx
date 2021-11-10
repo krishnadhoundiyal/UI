@@ -1,5 +1,6 @@
 import React, { useState, MouseEvent, CSSProperties, useRef } from 'react';
 import { makeStyles, createStyles, Theme } from '@material-ui/core/styles';
+import _ from 'lodash';
 import ReactFlow, {
   ReactFlowProvider,
   removeElements,
@@ -45,6 +46,10 @@ import { ContextMenu } from './contextmenu';
 import { DrawerConfigure } from './configuredrawer';
 import { ToolBar } from './toolbar';
 import { v4 as uuidv4 } from 'uuid';
+import CircularProgress from '@material-ui/core/CircularProgress';
+import LoadingOverlay from 'react-loading-overlay';
+import RotateLoader from 'react-spinners/RotateLoader';
+import { css } from "@emotion/react";
 const initialElements: Elements = [
   {
     id: '1',
@@ -56,6 +61,10 @@ const initialElements: Elements = [
 const useStyles = makeStyles(theme => ({
   card: {
     maxWidth: 345,
+  },
+  progress: {
+    marginTop: '250px',
+    marginLeft: '150px'
   },
   root: {
     borderTop: 'inset',
@@ -87,6 +96,7 @@ export const DnDFlow = () => {
   const [openDrawer,setopenDrawer] = useState(false);
   const [conf, setconf] = useState({});
   const [objtoPass, setobjtoPass] = useState({});
+  const [loading,setloading] = useState(false);
   const [dagDetails,setDagDetails] = useState({
     dag_id : '',
     dag_run_id : ''
@@ -153,6 +163,16 @@ export const DnDFlow = () => {
       jupyterNotebookEnvironVar: confObject["Environ"]
     };
     setconf(tObj);
+    //Change the name of the item here --
+    let temp_obj = elements.map((sItems,sIndex) => {
+      let tempObj = {...sItems};
+      if (tempObj["id"] == idx) {
+        tempObj = _.cloneDeep(sItems);
+        tempObj.data.label.props.children[1].props.children = confObject["label"];
+      }
+      return tempObj
+    });
+    setElements(temp_obj);
     setopenDrawer(false);
   };
   const updateDAGInfo = (data) => {
@@ -169,22 +189,23 @@ export const DnDFlow = () => {
         //connection object Description
         let tempObj = {...sItems};
         tempObj["animated"] =  true;
+        /*tempObj["animated"] =  true;
         tempObj['label'] = 'Failed';
         tempObj['style'] =  { stroke: 'red' };
-        return tempObj;
-        if (data[sItems["target"]]["state"] === "queued" || data[sItems["target"]]["state"] === undefined) {
+        return tempObj;*/
+        if (data[sItems["target"]] === "queued" || data[sItems["target"]] === undefined) {
           tempObj['label'] = 'Queued';
           tempObj['style'] =  { stroke: 'gray' };
         }
-        if (data[sItems["target"]]["state"] === "running") {
+        if (data[sItems["target"]] === "running") {
           tempObj['label'] = 'Running';
           tempObj['style'] =  { stroke: 'green' };
         }
-        if (data[sItems["target"]]["state"] === "success") {
+        if (data[sItems["target"]] === "success") {
           tempObj['label'] = 'Completed';
           tempObj['style'] =  { stroke: 'blue' };
         }
-        if (data[sItems["target"]]["state"] === "upstream_failed") {
+        if (data[sItems["target"]] === "upstream_failed") {
           tempObj['label'] = 'UpStream-Failed';
           tempObj['style'] =  { stroke: 'orange' };
         }
@@ -300,18 +321,37 @@ export const DnDFlow = () => {
 
     setElements((es) => es.concat(newNode));
   };
-
+ const showloading = (data) => {
+   setloading(data);
+ }
+ const overrideSpinner = css`
+ position: fixed;
+ margin-left: -80px;
+ margin-top: -450px;
+`;
   return (
-    <div className="dndflow">
+    <LoadingOverlay
+      active={loading}
+      spinner={<RotateLoader color={"rgb(215, 105, 54)"} css= {overrideSpinner} />}
+    >
+    <div className="dndflow" style={{height:"1200px"}}>
+
       <ReactFlowProvider>
       <Grid container style={{marginTop:"2px"}}>
-      <ToolBar pipeline={elements} parameters={conf} updateConnections={updateAirflowStatus} updateDagDetails={updateDAGInfo}/>
+      <ToolBar pipeline={elements}
+      parameters={conf}
+      updateConnections={updateAirflowStatus}
+      updateDagDetails={updateDAGInfo}
+      showLoading={showloading}
+      />
 
 
       <Grid item xs={3}>
         <PermanentDrawerLeft helpText="some" refresh={false} />
       </Grid>
+
       <Grid item xs={9}>
+
         <div className="reactflow-wrapper" ref={reactFlowWrapper}>
           <ReactFlow
             elements={elements}
@@ -341,9 +381,15 @@ export const DnDFlow = () => {
 
         />
       )}
+
         </Grid>
+
+
         </Grid>
       </ReactFlowProvider>
+
     </div>
+    </LoadingOverlay>
+
   );
 };

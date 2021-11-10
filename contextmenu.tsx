@@ -6,14 +6,32 @@ import Paper from "@material-ui/core/Paper";
 import Menu from "@material-ui/core/Menu";
 import Box from "@material-ui/core/Box";
 import ListItemText from "@material-ui/core/ListItemText";
+import ListItemIcon from '@material-ui/core/ListItemIcon';
+import { AiFillGithub, AiFillDelete, AiFillSetting } from 'react-icons/ai';
+import { SiKubernetes, SiApacheairflow, SiJupyter } from 'react-icons/si';
+import { GrDocumentConfig } from 'react-icons/gr';
+import { TiDelete } from 'react-icons/ti';
 import { ModalErrors } from './modal';
 import { RequestHandler } from './request';
 import { getAirFlowConfig } from './airflowConfig';
-const useStyles = makeStyles((theme) => ({}));
+import { Divider } from '@material-ui/core';
+import { Typography } from '@material-ui/core';
+const useStyles = makeStyles((theme) => ({
+  iconstyles: {
+    paddingLeft: "10px",
+    color : "rgb(75 70 70 / 67%)",
+    minWidth: "44px"
+  },
+  texteffect : {
+    minWidth: "25px",
+
+  }
+}));
 export const ContextMenu = (props): JSX.Element => {
   //const [menuItems, setMenuItems] = React.useState(null);
   const [anchorEl,setAnchorEl] = React.useState<null | HTMLElement>(props.anchorelement);
   const [openLogDialog,setopenLogDialog] = useState(false);
+  const classes = useStyles();
   const [logDetails,setlogDetails] = useState({
     'error' : '',
     'traceback': ''
@@ -65,12 +83,13 @@ export const ContextMenu = (props): JSX.Element => {
         airflow_pass: configAirflow["AirflowPassword"],
         dag_id : props.dag_info.dag_id,
         dag_run_id :  props.dag_info.dag_run_id,
-        task_id : props.nodeId
+        task_id : props.nodeid
       };
       // Testing
-      payloadItems['dag_id'] = 'Dag_generated_Explorer2b2e8e29-b074-4907-b4c2-15a15bac17cb4343';
+      /*payloadItems['dag_id'] = 'Dag_generated_Explorer2b2e8e29-b074-4907-b4c2-15a15bac17cb4343';
       payloadItems['dag_run_id'] = 'Dag_generated_Explorer2b2e8e29-b074-4907-b4c2-15a15bac17cb4343';
       payloadItems['task_id'] = '3b7cf0d315bf45ea820ed29ee4687ca7';
+      */
       let serverPromise = RequestHandler.makePostRequest( 'explorersdev/getTaskLog',
       JSON.stringify(payloadItems)).then(response =>{
         //props.handleLogItems(response);
@@ -103,23 +122,45 @@ export const ContextMenu = (props): JSX.Element => {
         onClose={handleClose}
       >
         {menuItemsObtained.map((itemX, index) => {
+          let divid = index.toString() + "contextmenu";
           return (
+            <div key={divid}>
             <MenuItem
               onClick={(event) => handleclick(event,itemX.text)}
               key={index.toString()}
               className="contextmenuListItems"
             >
-              <ListItemText className="contextmenu">
-                <Box display="flex" flexDirection="row">
-                  <Box p={1}>
-                    <div className={itemX.cssclass}> </div>
-                  </Box>
-                  <Box p={1} className="textcontextMenu">
-                    {itemX.text}
-                  </Box>
-                </Box>
+            <ListItemIcon classes={{root:classes.iconstyles}}>
+            {itemX.text == "Configure" && (
+              <AiFillSetting />
+            )}
+            {itemX.text == "View Logs" && (
+              <SiApacheairflow />
+            )}
+            {itemX.text == "Details" && (
+              <SiJupyter />
+            )}
+            {itemX.text == "Remove" && (
+              <AiFillDelete />
+            )}
+
+            </ListItemIcon>
+              <ListItemText  >
+              <Typography variant="overline" classes={{root:classes.texteffect}} >
+  {itemX.text}
+</Typography>
+
+
               </ListItemText>
+
             </MenuItem>
+            {index  < menuItemsObtained.length -1 && (
+              <Divider />
+            )}
+
+            </div>
+
+
           );
         })}
       </Menu>
