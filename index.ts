@@ -42,7 +42,7 @@ function addLauncherItems(launcher: ILauncher, app: JupyterFrontEnd, docManager:
   const content = new ReactAppWidget();
   const widget = new MainAreaWidget({ content });
   widget.id = 'apod-jupyterlab';
-  widget.title.label = 'Astronomy Picture';
+  widget.title.label = 'Explorers';
   widget.title.closable = true;
   //Code to put into the main area
   // Add an image element to the content

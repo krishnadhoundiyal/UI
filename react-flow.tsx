@@ -72,6 +72,9 @@ const useStyles = makeStyles(theme => ({
     borderRadius:'0px'
 
   },
+  wrappercss : {
+    height: "1250px"
+  },
   menuItem: {
     '&:focus': {
       backgroundColor: theme.palette.primary.main,
@@ -203,17 +206,19 @@ export const DnDFlow = () => {
         }
         if (data[sItems["target"]] === "success") {
           tempObj['label'] = 'Completed';
-          tempObj['style'] =  { stroke: 'blue' };
+          tempObj["animated"] =  false;
+          tempObj['style'] =  { stroke: 'green' };
         }
         if (data[sItems["target"]] === "upstream_failed") {
           tempObj['label'] = 'UpStream-Failed';
           tempObj['style'] =  { stroke: 'orange' };
         }
-        if (data[sItems["target"]]["state"] === "failed") {
+        if (data[sItems["target"]] === "failed") {
           tempObj['label'] = 'Failed';
+          tempObj["animated"] =  false;
           tempObj['style'] =  { stroke: 'red' };
         }
-        if (data[sItems["target"]]["state"] === "skipped") {
+        if (data[sItems["target"]] === "skipped") {
           tempObj['label'] = 'Skipped';
           tempObj['style'] =  { stroke: 'pink' };
         }
@@ -352,7 +357,7 @@ export const DnDFlow = () => {
 
       <Grid item xs={9}>
 
-        <div className="reactflow-wrapper" ref={reactFlowWrapper}>
+        <div className="reactflow-wrapper" ref={reactFlowWrapper} style={{height:"1200px"}}>
           <ReactFlow
             elements={elements}
             onConnect={onConnect}
@@ -368,6 +373,7 @@ export const DnDFlow = () => {
         {contextMenu && (
           <ContextMenu anchorelement={anchorEl}
            nodeid={nodeId}
+           configurationObject = {conf}
            dag_info={dagDetails}
            removeelementcallback={onRemoveContextMenu}
            handleLogItems={onTaskLogRecieve}

@@ -204,6 +204,10 @@ export const ToolBar = (props): JSX.Element => {
                }).then(result => {
                  console.log("Do Nothing");
                });
+               props.updateDagDetails({
+                 dag_id : response.data.dag_id,
+                 dag_run_id :  response.data.dag_run_id
+               });
           // Query the Airflow to get the status of the tasks
           let queryStatuePayload = {
             airflow_ip : configRuntime["AirflowEndpoint"],
@@ -214,26 +218,40 @@ export const ToolBar = (props): JSX.Element => {
             dag_run_id :  response.data.dag_run_id
           };
           var funRef = setInterval(() => {
-            let stop_ajax = false;
-            let statusPromise = RequestHandler.makePostRequest( 'explorersdev/getTaskStatus',
-            JSON.stringify(queryStatuePayload)).then(taskstatus =>{
-              let statusMap = taskstatus["data"].reduce ((previousValue,currentValue,currentIndex,arr) => {
-              previousValue[currentValue["task_id"]] = currentValue["state"];
-              if (["failed","upstream_failed"].includes(currentValue['state'])) {
-                stop_ajax = true;
+            let dagStatusRequest = RequestHandler.makePostRequest( 'explorersdev/getDAGStatus',
+            JSON.stringify(queryStatuePayload)).then(dagStatus =>{
+              if (["failed","success","completed","notfound"].includes(dagStatus["state"])) {
+                //clearInterval(funRef);
+                // I cant stop the polling here, as it will not fetch the last tasks status, so will tell it to stop after 50 secs
+                setTimeout(() => {
+                  clearInterval(funRef);
+                }, 18000);
               }
-              return previousValue;
-            },{});
-              if (stop_ajax) {
-                clearInterval(funRef);
-              }
-              props.updateConnections(statusMap);
+                // Get the task status
+                let stop_ajax = false;
+                let statusPromise = RequestHandler.makePostRequest( 'explorersdev/getTaskStatus',
+                JSON.stringify(queryStatuePayload)).then(taskstatus =>{
+                  let statusMap = taskstatus["data"].reduce ((previousValue,currentValue,currentIndex,arr) => {
+                  previousValue[currentValue["task_id"]] = currentValue["state"];
+                  if (["failed","upstream_failed"].includes(currentValue['state'])) {
+                    stop_ajax = true;
+                  }
+                  return previousValue;
+                },{});
+                  if (stop_ajax) {
+                    //clearInterval(funRef);
+                  }
+                  props.updateConnections(statusMap);
+                });
+
+
+            },reject => {
+              //stop the polling here
+              clearInterval(funRef);
             });
+
           },6000);
-          props.updateDagDetails({
-            dag_id : response.data.dag_id,
-            dag_run_id :  response.data.dag_run_id
-          });
+
 
 
         }, reject => {

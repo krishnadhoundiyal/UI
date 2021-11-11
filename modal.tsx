@@ -7,9 +7,19 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import { makeStyles } from "@material-ui/core/styles";
 import Button from '@material-ui/core/Button';
 import React from "react";
+import { IDocumentManager } from '@jupyterlab/docmanager';
+import { SiJupyter } from 'react-icons/si';
+import factoryVar  from './reflect';
 const useStyles = makeStyles({
  errors : {
    backgroundColor : "#ff000094"
+ },
+ success : {
+   backgroundColor : "#e06613"
+ },
+ textClick :{
+   textDecoration: "underline",
+   color : "#e67a46cc"
  }
 });
 export const ModalErrors = (props) => {
@@ -18,6 +28,15 @@ export const ModalErrors = (props) => {
     setOpen(false);
     props.callback()
   };
+  const handleclick = (event,type,filename) => {
+      props.callback()
+    if (type == "filedownload") {
+      const docManager = factoryVar["manager"];
+      //let filePath = response.directory + "/" + response.file;
+      docManager.open(filename);
+    }
+    setOpen(false);
+  }
   const classes = useStyles();
   return (
     <React.Fragment>
@@ -27,7 +46,12 @@ export const ModalErrors = (props) => {
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
       >
-        <DialogTitle classes={{root:classes.errors}} id="alert-dialog-title">{"Error from Server Application"}</DialogTitle>
+       {"details" in props.errorobject && (
+         <DialogTitle classes={{root:classes.success}} id="alert-dialog-title">{"Jupyter Processed Notebook Available"}</DialogTitle>
+       )}
+       {!("details" in props.errorobject) && (
+         <DialogTitle classes={{root:classes.errors}} id="alert-dialog-title">{"Error from Server Application"}</DialogTitle>
+       )}
         <DialogContent>
           <DialogContentText >
             {props.errorobject.error}
@@ -37,10 +61,22 @@ export const ModalErrors = (props) => {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
+        {!("details" in props.errorobject) && (
           <Button onClick={handleClose} color="primary">
             Cancel
           </Button>
+        )}
+        {"details" in props.errorobject && (
+          <Button
+              variant="contained"
+              color="primary"
+              onClick={(event) => handleclick(event,"filedownload",props.errorobject["details"])}
 
+              startIcon={<SiJupyter />}
+            >
+        Open Processed Notebook
+      </Button>
+        )}
         </DialogActions>
       </Dialog>
 </React.Fragment>
