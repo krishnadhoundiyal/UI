@@ -303,6 +303,21 @@ export const DnDFlow = () => {
       </Box>
 
     )
+  } else if (nodetype === "PerlScript") {
+    return (
+
+      <Box display="flex" flexDirection="row">
+      <Box p={1}>
+          <div className="jp-plscript-explorer"> </div>
+        </Box>
+        <Box p={1}>
+
+      Perl Script
+
+          </Box>
+      </Box>
+
+    )
   }
 }
 

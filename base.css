@@ -16,6 +16,13 @@
   height:20px !important;
   background-color: white !important;
 }
+.jp-plscript-explorer {
+  background-size: 100%;
+  background-image: url(perl.svg);
+  width:20px !important;
+  height:20px !important;
+  background-color: white !important;
+}
 .react-flow__node-default {
  border-color: "blue";
  width: auto !important;
@@ -50,6 +57,13 @@
 .PythonScript {
   background-size: 100%;
   background-image: url(python.svg);
+  width:20px !important;
+  height:20px !important;
+  background-color: white !important;
+}
+.PerlScript {
+  background-size: 100%;
+  background-image: url(perl.svg);
   width:20px !important;
   height:20px !important;
   background-color: white !important;

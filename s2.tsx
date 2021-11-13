@@ -284,6 +284,7 @@ export const PermanentDrawerLeft = (props): JSX.Element => {
                             {node : 'JupyterLabNotebook',icon:'description'},
                             {node:'Comment',icon:'attachfile'},
                             {node:'PythonScript',icon:'attachfile'},
+                            {node:'PerlScript',icon:'attachfile'},
                           ]
                       }
                   ]

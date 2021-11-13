@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { getDockerConfig } from './DockerImage';
 export const ConvertToJsonDag = (elements) => {
     let dag = {
       "name" : "Dag_generated_Explorer" + uuidv4().toString(),
@@ -51,6 +52,8 @@ export const ConvertToJsonDag = (elements) => {
       "Pandas" : "docker.io/amancevice/pandas:1.1.1",
       "PyTorch" : "docker.io/amancevice/pandas:1.1.1"
     }
+    let dockerImgList = getDockerConfig();
+
     let configuration = Object.keys(elements).map((items) => {
       let temp_obj = {}
       temp_obj["id"] = elements[items]["id"];
@@ -61,7 +64,19 @@ export const ConvertToJsonDag = (elements) => {
         temp_obj["type"] = "NoteBook";
       }
 
-      temp_obj["runtime_image"] = dockerImageLookUp[elements[items]["jupyterNotebookDockerImage"]];
+      //temp_obj["runtime_image"] = dockerImageLookUp[elements[items]["jupyterNotebookDockerImage"]];
+      let dockerSelected = dockerImgList.filter((images,index)=> {
+        if (images["Name"] == elements[items]["jupyterNotebookDockerImage"]) {
+          return true;
+        } else {
+          return false;
+        }
+      });
+      if (dockerSelected.length > 0) {
+        temp_obj["runtime_image"] = dockerSelected[0]["Description"];
+      } else {
+        temp_obj["runtime_image"] = "docker.io/amancevice/pandas:1.1.1"
+      }
       temp_obj["dependencies"] = elements[items]["juputerNotebookDependency"].map((items1) => {
                                                             return items1["fileSelected"]
                                                           }).filter((ele) => {

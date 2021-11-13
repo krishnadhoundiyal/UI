@@ -130,6 +130,10 @@ export const ContextMenu = (props): JSX.Element => {
       'directory' : props.dag_info.dag_id,
       'filename' : props.configurationObject[props.nodeid]["jupyterFilePath"]
     };
+    //if its a  python script filename, send the log appended in the name
+    if (payloadItems.filename.endsWith(".py") || payloadItems.filename.endsWith(".pl") ) {
+      payloadItems.filename =  payloadItems.filename.split('.')[0] + ".log";
+    }
     // Testing
     /*payloadItems['dag_id'] = 'Dag_generated_Explorer2b2e8e29-b074-4907-b4c2-15a15bac17cb4343';
     payloadItems['dag_run_id'] = 'Dag_generated_Explorer2b2e8e29-b074-4907-b4c2-15a15bac17cb4343';

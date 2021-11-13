@@ -3,7 +3,7 @@ import Grid from '@material-ui/core/Grid';
 import ArrowRightIcon from '@material-ui/icons/ArrowRight';
 import AssignmentTurnedInIcon from '@material-ui/icons/AssignmentTurnedIn';
 import { AiFillGithub } from 'react-icons/ai';
-import { SiKubernetes, SiApacheairflow } from 'react-icons/si';
+import { SiKubernetes, SiApacheairflow, SiDocker } from 'react-icons/si';
 import SettingsIcon from '@material-ui/icons/Settings';
 import ClearAllIcon from '@material-ui/icons/ClearAll';
 import ViewListIcon from '@material-ui/icons/ViewList';
@@ -19,6 +19,7 @@ import { RequestHandler } from './request';
 import { ConvertToJsonDag } from './createJsonDag';
 import { ConvertConfToDesiredObj } from './createJsonDag';
 import { ConfigureRuntime } from './configRuntime';
+import { ConfigureDocker } from './configDocker';
 import { ModalErrors } from './modal';
 import { InputDialog, Dialog, showDialog } from '@jupyterlab/apputils';
 import { updateAirflowConfig } from './airflowConfig';
@@ -45,6 +46,7 @@ const useStyles = makeStyles({
 export const ToolBar = (props): JSX.Element => {
   const classes = useStyles();
   const [openRuntimeDrawer,setopenRuntimeDrawer] = useState(false);
+  const [openDockerDrawer,setopenDockerDrawer] = useState(false);
   const [openErrorDialog,setopenErrorDialog] = useState(false);
   const [statusfunreference,setstatusfunreference] = useState(0);
   const [dagid,setdagid] = useState("");
@@ -79,6 +81,10 @@ export const ToolBar = (props): JSX.Element => {
     setconfigRuntime(configItems);
     updateAirflowConfig(configItems);
     setopenRuntimeDrawer(false);
+  };
+  const handleDockerPersist = (configItems) => {
+
+    setopenDockerDrawer(false);
   };
   const handleclick = (event, type) => {
     if (type == "Run") {
@@ -270,6 +276,9 @@ export const ToolBar = (props): JSX.Element => {
     if (type == "AirflowConfig") {
       setopenRuntimeDrawer(true);
     }
+    if (type == "DockerImage") {
+      setopenDockerDrawer(true);
+    }
   }
   return (
     <React.Fragment>
@@ -285,10 +294,22 @@ export const ToolBar = (props): JSX.Element => {
     </Tooltip>
     </Grid>
     <Grid item xs={1} classes={{root:classes.tools}}>
+      <Tooltip title="Add Your Docker Images to control environments">
     <IconButton classes={{root:classes.toolicons}}
-      aria-label="Run">
-      <ArrowRightIcon fontSize="small" />
+    aria-label="Attach"
+    onClick={(event) => handleclick(event,"DockerImage")}
+    >
+    
+      <SiDocker size = {20} />
     </IconButton>
+      </Tooltip>
+    {openDockerDrawer && (
+    <ConfigureDocker
+      callback={handleDockerPersist}
+
+    />
+    )}
+
     </Grid>
     <Grid item xs={1} classes={{root:classes.tools}}>
     <Tooltip title="Execute Pipeline on Kubernetes Cluster">

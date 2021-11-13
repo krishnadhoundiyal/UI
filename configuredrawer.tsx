@@ -1,5 +1,5 @@
 import React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import clsx from "clsx";
 import { makeStyles } from "@material-ui/core/styles";
 import Drawer from "@material-ui/core/Drawer";
@@ -24,6 +24,7 @@ import CancelIcon from "@material-ui/icons/Cancel";
 import Typography from "@material-ui/core/Typography";
 import { IDocumentManager } from '@jupyterlab/docmanager';
 import { FileDialog, IFileBrowserFactory } from '@jupyterlab/filebrowser';
+import { updateDockerConfig, getDockerConfig } from "./DockerImage";
 import factoryVar  from './reflect';
 
 const useStyles = makeStyles({
@@ -56,9 +57,14 @@ const useStyles = makeStyles({
 });
 export const DrawerConfigure = (props) => {
   const [node, setnode] = useState(props.node);
+  const [imageconf,setimageconf] = useState([]);
   const [jupyterrule, setjupyterlabrule] = useState(
     "Custome Label for Notebook"
   );
+  useEffect(() => {
+    let arrT = getDockerConfig();
+    setimageconf(arrT);
+  },[]);
   const [dockerImage, setdockerImage] = useState(props.nodeobj.DockerImage);
   const [environ, setenviron] = useState(props.nodeobj.Environ);
   const [filedepencies, setfiledepencies] = useState(
@@ -182,6 +188,7 @@ export const DrawerConfigure = (props) => {
     }
 
   const classes = useStyles();
+
   return (
     <React.Fragment>
       <Drawer anchor="right" open={true} classes={{ paper: classes.drawer }}>
@@ -261,16 +268,15 @@ export const DrawerConfigure = (props) => {
                   id: "age-native-helper"
                 }}
               >
-                <option key="34" aria-label="None" value="None" />
-                <option key="44" value="Pandas">
-                  Pandas
+              {imageconf.map((dockerImg, index) => {
+                let key = (index * 4 + 37).toString();
+                return(
+                <option key={key} aria-label="None"
+                value={dockerImg["Name"]} >{dockerImg["Name"]}
                 </option>
-                <option key="55" value="PyTorch">
-                  PyTorch
-                </option>
-                <option key="66" value="TensorFlow">
-                  TensorFlow
-                </option>
+              );
+            })
+            }
               </NativeSelect>
               <FormHelperText>
                 Docker Images used as Execution Environment{" "}
