@@ -344,6 +344,18 @@ export const DnDFlow = () => {
  const showloading = (data) => {
    setloading(data);
  }
+ const performGrouping = (data) => {
+   let els =  _.cloneDeep(elements);
+   els.push(data["node"]);
+   els.push(...data["inputConnections"]);
+   els.push(...data["outputConnections"]);
+   els.forEach(element => {
+     if (data["itemsToHide"].indexOf(element["id"]) > -1) {
+       element.isHidden = true;
+     }
+   });
+   setElements(els);
+ }
  const overrideSpinner = css`
  position: fixed;
  margin-left: -80px;
@@ -363,6 +375,7 @@ export const DnDFlow = () => {
       updateConnections={updateAirflowStatus}
       updateDagDetails={updateDAGInfo}
       showLoading={showloading}
+      groupItems={performGrouping}
       />
 
 

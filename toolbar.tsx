@@ -4,6 +4,9 @@ import ArrowRightIcon from '@material-ui/icons/ArrowRight';
 import AssignmentTurnedInIcon from '@material-ui/icons/AssignmentTurnedIn';
 import { AiFillGithub } from 'react-icons/ai';
 import { SiKubernetes, SiApacheairflow, SiDocker } from 'react-icons/si';
+import {BiSelection} from 'react-icons/bi';
+import CheckIcon from '@material-ui/icons/Check';
+import BlockIcon from '@material-ui/icons/Block';
 import SettingsIcon from '@material-ui/icons/Settings';
 import ClearAllIcon from '@material-ui/icons/ClearAll';
 import ViewListIcon from '@material-ui/icons/ViewList';
@@ -25,6 +28,8 @@ import { InputDialog, Dialog, showDialog } from '@jupyterlab/apputils';
 import { updateAirflowConfig } from './airflowConfig';
 import { Widget } from '@lumino/widgets';
 import Tooltip from '@material-ui/core/Tooltip';
+import { Rnd } from "react-rnd";
+import { v4 as uuidv4 } from 'uuid';
 const useStyles = makeStyles({
   tools: {
     backgroundColor : '#8080805c',
@@ -41,7 +46,10 @@ const useStyles = makeStyles({
   },
   progress: {
     marginTop: '200px'
-  }
+  },
+  iconalign :{
+    float:"right"
+},
 });
 export const ToolBar = (props): JSX.Element => {
   const classes = useStyles();
@@ -50,6 +58,25 @@ export const ToolBar = (props): JSX.Element => {
   const [openErrorDialog,setopenErrorDialog] = useState(false);
   const [statusfunreference,setstatusfunreference] = useState(0);
   const [dagid,setdagid] = useState("");
+  const [openGrouper,setopenGrouper] = useState(false);
+  const [position,setposition] = useState({
+    x : 10,
+    y : 10,
+    width:"80px",
+    height: "80px"
+  });
+  const handleGroupDrag = (event,d) => {
+    let tempPosition = {...position}
+    tempPosition["x"] = d.x;
+    tempPosition["y"] = d.y;
+    setposition(tempPosition);
+  }
+  const handleGroupResize = (e, direction, ref, delta, pos) => {
+    let tempPosition = {...position}
+    tempPosition["width"] = ref.style.width;
+    tempPosition["height"] =ref.style.height;
+    setposition(tempPosition);
+  }
   const [errorDetails,seterrorDetails] = useState({
     'error' : '',
     'traceback': ''
@@ -86,6 +113,113 @@ export const ToolBar = (props): JSX.Element => {
 
     setopenDockerDrawer(false);
   };
+  const handleGroup = (evt,type) => {
+    if (type == "Close") {
+      setposition({
+        x : 10,
+        y : 10,
+        width:"80px",
+        height: "80px"
+      });
+      setopenGrouper(false);
+    }
+    if (type == "Group") {
+      console.log("#############")
+      console.log(props);
+      let x_rect_top = position["x"] + 245;
+      let y_rect_top = position["y"] + (-28);
+      let x_max = x_rect_top + Number(position["width"].replace(/px$/, ''));
+      let y_max = y_rect_top + Number(position["height"].replace(/px$/, ''));
+      let containedNodes = props.pipeline.filter((item,index) => {
+        if ("position" in item) {
+          if (item["position"]["x"] > x_rect_top && item["position"]["x"] < x_max &&
+          item["position"]["y"] > y_rect_top && item["position"]["y"] < y_max) {
+                return true;
+              } else {
+                return false;
+              }
+        } else {
+          return false;
+        }
+      });
+      console.log(containedNodes);
+      //Find nodes which feed inputs and are residing outside. This would mean nodes except containerNodes
+      let containerNodesID = containedNodes.map((items,idx) => {
+        return items["id"];
+      })
+      let outsideInputNodes = props.pipeline.reduce((previousValue,currentValue,currentIndex,arr) => {
+        if("target" in currentValue){
+          if (containerNodesID.indexOf(currentValue["target"]) > -1 && containerNodesID.indexOf(currentValue["source"]) == -1) {
+            previousValue.push(currentValue["source"]);
+          }
+
+        }
+        return previousValue;
+      },[]).filter((value, index, array)=>{
+        if (array.indexOf(value) == index){
+          return true;
+        } else {
+          return false;
+        }
+      });
+      let outsideOutputNodes = props.pipeline.reduce((previousValue,currentValue,currentIndex,arr) => {
+        if("source" in currentValue){
+          if (containerNodesID.indexOf(currentValue["source"]) > -1 &&  containerNodesID.indexOf(currentValue["target"]) == -1) {
+            previousValue.push(currentValue["target"]);
+          }
+        }
+        return previousValue;
+      },[]).filter((value, index, array)=>{
+        if (array.indexOf(value) == index){
+          return true;
+        } else {
+          return false;
+        }
+      });
+      let itemsToHide = props.pipeline.reduce((previousValue,currentValue,currentIndex,arr) => {
+        if ("source" in currentValue) {
+          if (containerNodesID.indexOf(currentValue["source"]) > -1 || containerNodesID.indexOf(currentValue["target"]) > -1 ) {
+            previousValue.push(currentValue["id"]);
+          }
+        } else {
+          if (containerNodesID.indexOf(currentValue["id"]) > -1) {
+            previousValue.push(currentValue["id"]);
+          }
+        }
+        return previousValue;
+      },[]);
+      let newNode = {
+                id: uuidv4().toString().replace(/\-/gi,""),
+                type:'default',
+                position: { x: x_rect_top + ((x_max-x_rect_top)/2), y: y_rect_top + ((y_max-y_rect_top)/2) },
+                data: { label : "GroupItem-" + uuidv4().toString().replace(/\-/gi,"") }
+              };
+     let inboundConnections = outsideInputNodes.map((itx,idx) => {
+       return {
+         id: uuidv4().toString().replace(/\-/gi,""),
+         source: itx,
+         target: newNode["id"]
+       };
+
+     });
+     let outboundConnections = outsideOutputNodes.map((itx,idx) => {
+       return {
+         id: uuidv4().toString().replace(/\-/gi,""),
+         target: itx,
+         source: newNode["id"]
+       };
+
+     });
+     let result_val = {
+       "node" : newNode,
+       "inputConnections" : inboundConnections,
+       "outputConnections": outboundConnections,
+       "itemsToHide" : itemsToHide
+     };
+     props.groupItems(result_val);
+
+    }
+  }
   const handleclick = (event, type) => {
     if (type == "Run") {
       //This method does the below actions
@@ -279,6 +413,9 @@ export const ToolBar = (props): JSX.Element => {
     if (type == "DockerImage") {
       setopenDockerDrawer(true);
     }
+    if (type == "GroupTasks") {
+      setopenGrouper(true);
+    }
   }
   return (
     <React.Fragment>
@@ -299,7 +436,7 @@ export const ToolBar = (props): JSX.Element => {
     aria-label="Attach"
     onClick={(event) => handleclick(event,"DockerImage")}
     >
-    
+
       <SiDocker size = {20} />
     </IconButton>
       </Tooltip>
@@ -339,10 +476,34 @@ export const ToolBar = (props): JSX.Element => {
     )}
     </Grid>
     <Grid item xs={1} classes={{root:classes.tools}}>
+    <Tooltip title="Group Tasks">
     <IconButton classes={{root:classes.toolicons}}
-      aria-label="Save">
-      <ClearAllIcon fontSize="small" />
+      aria-label="Save"
+      onClick={(event) => handleclick(event,"GroupTasks")}
+      >
+      <BiSelection size={20} />
     </IconButton>
+    </Tooltip>
+    {openGrouper && (
+      <Rnd
+    style={{"background":"#b1aaaa1f","border":"dashed","zIndex":12121211}}
+    size={{ width: position["width"],  height: position["height"] }}
+    position={{ x: position["x"], y: position["y"] }}
+    onDragStop={(e, d) => handleGroupDrag(e,d)}
+    onResize={(e, direction, ref, delta, position) => handleGroupResize(e,direction,ref,delta,position)}
+  >
+  <IconButton aria-label="check" size="small" color="primary" classes={{root:classes.iconalign}}>
+  <CheckIcon fontSize="inherit"
+ onClick={(e) => handleGroup(e,"Group")}
+   />
+</IconButton>
+<IconButton aria-label="delete" size="small" color="secondary" classes={{root:classes.iconalign}}>
+  <BlockIcon fontSize="inherit"
+  onClick={(e) => handleGroup(e,"Close")}
+   />
+</IconButton>
+  </Rnd>
+    )}
 
     </Grid>
     <Grid item xs={1} classes={{root:classes.tools}}>
